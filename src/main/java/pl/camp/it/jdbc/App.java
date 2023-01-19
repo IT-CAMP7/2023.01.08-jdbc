@@ -9,11 +9,20 @@ public class App {
     public static Connection connection = null;
     public static void main(String[] args) {
         connect();
-        User user = new User(3, "asdfassdf",
-                "asdffffff", "sdfgsdfgsdfg", "sdfgsdfgsdfgsdfg");
-        //saveUser2(user);
+        User user = new User(0, "zbychu",
+                "zbychu123", "Zbigniew", "Mailowski");
+        saveUser2(user);
+        System.out.println(user);
         //updateUser(user);
-        deleteUser(3);
+        //deleteUser(3);
+        Optional<User> userBox = getUserById(5);
+        if(userBox.isPresent()) {
+            System.out.println(userBox.get());
+        } else {
+            System.out.println("Nie ma takiego usera !!");
+        }
+        List<User> users = getAllUsers();
+        System.out.println(users);
     }
 
     public static void connect() {
@@ -51,12 +60,16 @@ public class App {
     public static void saveUser2(User user) {
         try {
             String sql = "INSERT INTO tuser (login, password, name, surname) VALUES (?,?,?,?)";
-            PreparedStatement ps = connection.prepareStatement(sql);
+            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, user.getLogin());
             ps.setString(2, user.getPassword());
             ps.setString(3, user.getName());
             ps.setString(4, user.getSurname());
             ps.executeUpdate();
+
+            ResultSet rs = ps.getGeneratedKeys();
+            rs.next();
+            user.setId(rs.getInt(1));
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -89,10 +102,41 @@ public class App {
     }
 
     public static Optional<User> getUserById(int id) {
+        try {
+            String sql = "SELECT * FROM tuser WHERE id = ?";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next()) {
+                return Optional.of(new User(
+                        rs.getInt("id"),
+                        rs.getString("login"),
+                        rs.getString("password"),
+                        rs.getString("name"),
+                        rs.getString("surname")));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
         return Optional.empty();
     }
 
     public static List<User> getAllUsers() {
-        return new ArrayList<>();
+        List<User> result = new ArrayList<>();
+        try {
+            String sql = "SELECT * FROM tuser;";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            while(rs.next()) {
+                result.add(new User(
+                        rs.getInt("id"),
+                        rs.getString("login"),
+                        rs.getString("password"),
+                        rs.getString("name"),
+                        rs.getString("surname")));
+            }
+        } catch (SQLException e) {
+        }
+        return result;
     }
 }
